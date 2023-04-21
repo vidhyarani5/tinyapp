@@ -12,6 +12,37 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
+const getRandomNumber = function() {
+  return Math.random().toString(36).substring(2,7);;
+};
+
+const getUserByEmail = function(email) {
+  for (const user in users) {
+    if (users[user].email === email) {
+      return true
+    }
+  } return false;
+};
+const getUserID = function(email) {
+  for (const user in users) {
+    if (users[user].email === email) {
+      return users[user].id;
+    }
+  }
+};
 app.get("/", (req, res) => {
   res.send("Hello there!");
 });
@@ -46,7 +77,7 @@ app.get("/u/:id", (req, res) => {
 //get methods
 app.get("/urls", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
   res.render("urls_index", templateVars);
@@ -57,7 +88,7 @@ app.get("/urls/:id", (req, res) => {
 });
 // post methods
 app.post("/urls", (req, res) => {
-  const id = Math.random().toString(36).substring(2,7);
+  const id = getRandomNumber();
   urlDatabase[id] = req.body.longURL;
   res.redirect(`/urls/${id}`);
 });
@@ -73,11 +104,52 @@ app.post("/urls/:id", (req, res) => {
 });
 
 //login
+app.get('/login', (req, res) => {
+  let templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+  res.render("user_login", templateVars);
+});
+
 app.post('/login', (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect('/urls');
+  const email = req.body.email;
+  const password = req.body.password;
+  if (!getUserByEmail(email)) {
+    res.status(403).send("Didn't fina any Account with this email address");
+  } else {
+    const userID = getUserID(email);
+    res.cookie('user_id', userID);
+    res.redirect("/urls");
+    }
 });
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
+});
+//user-registration
+app.get("/register", (req, res) => {
+  let templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+  res.render("user_registration", templateVars);
+});
+app.post("/register", (req, res) => {
+  const reqEmail = req.body.email;
+  const reqPassword = req.body.password;
+  if (!reqEmail) {
+    res.status(400).send("Please Enter Valid Email..");
+  } else if (!reqPassword) {
+    res.status(400).send("Please Enter Password..");
+  } else if (getUserByEmail(reqEmail)) {
+    res.status(400).send("Account was exists with the email address..");
+  } else {
+    const userRandomId = getRandomNumber();
+    users[userRandomId] = {
+      id: userRandomId,
+      email: reqEmail,
+      password: reqPassword
+    };
+      res.cookie('user_id', userRandomId);
+      res.redirect("/urls");
+  };
 });
