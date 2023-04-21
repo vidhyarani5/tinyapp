@@ -41,6 +41,8 @@ app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
+
+//get methods
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
@@ -64,4 +66,10 @@ app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
   urlDatabase[id] = req.body.newURL;
   res.redirect("/urls");
+});
+
+//login
+app.post('/login', (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect('/urls');
 });
