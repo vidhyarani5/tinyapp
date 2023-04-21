@@ -18,10 +18,10 @@
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
     </div>
-    <% if (username) { %> 
+    <% if (user) { %> 
       <form method="POST" action="/logout">
         <div>
-          <label class="aria-label">Logged In As: <%= username %></label>
+          <label class="aria-label">Logged In As: <%= user.email %></label>
           <button type="submit" class="btn btn-primary">Logout</button>
         </div>
       </form>
