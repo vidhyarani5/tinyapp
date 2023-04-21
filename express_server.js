@@ -36,7 +36,13 @@ const getUserByEmail = function(email) {
     }
   } return false;
 };
-
+const getUserID = function(email) {
+  for (const user in users) {
+    if (users[user].email === email) {
+      return users[user].id;
+    }
+  }
+};
 app.get("/", (req, res) => {
   res.send("Hello there!");
 });
@@ -104,9 +110,17 @@ app.get('/login', (req, res) => {
   };
   res.render("user_login", templateVars);
 });
+
 app.post('/login', (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect('/urls');
+  const email = req.body.email;
+  const password = req.body.password;
+  if (!getUserByEmail(email)) {
+    res.status(403).send("Didn't fina any Account with this email address");
+  } else {
+    const userID = getUserID(email);
+    res.cookie('user_id', userID);
+    res.redirect("/urls");
+    }
 });
 app.post("/logout", (req, res) => {
   res.clearCookie('user_id');
@@ -123,11 +137,11 @@ app.post("/register", (req, res) => {
   const reqEmail = req.body.email;
   const reqPassword = req.body.password;
   if (!reqEmail) {
-    res.send(400, "Please Enter Valid Email..");
+    res.status(400).send("Please Enter Valid Email..");
   } else if (!reqPassword) {
-    res.send(400, "Please Enter Password..");
+    res.status(400).send("Please Enter Password..");
   } else if (getUserByEmail(reqEmail)) {
-    res.send(400, "Account was exists with the email address..");
+    res.status(400).send("Account was exists with the email address..");
   } else {
     const userRandomId = getRandomNumber();
     users[userRandomId] = {
