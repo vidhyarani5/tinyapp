@@ -98,6 +98,12 @@ app.post("/urls/:id", (req, res) => {
 });
 
 //login
+app.get('/login', (req, res) => {
+  let templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+  res.render("user_login", templateVars);
+});
 app.post('/login', (req, res) => {
   res.cookie('username', req.body.username);
   res.redirect('/urls');
