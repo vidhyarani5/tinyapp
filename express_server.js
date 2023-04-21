@@ -29,10 +29,7 @@ app.get("/set", (req, res) => {
  app.get("/fetch", (req, res) => {
   res.send(`a = ${a}`);
  });
- app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
-  res.render("urls_index", templateVars);
-});
+
 app.get("/hello", (req, res) => {
   const templateVars = { greeting: "Hello World!" };
   res.render("hello_world", templateVars);
@@ -40,24 +37,31 @@ app.get("/hello", (req, res) => {
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
-
-app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
-});
-
-app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
-  res.render("urls_show", templateVars);
-});
-
 app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
-
+app.get("/urls", (req, res) => {
+  const templateVars = { urls: urlDatabase };
+  res.render("urls_index", templateVars);
+});
+app.get("/urls/:id", (req, res) => {
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
+  res.render("urls_show", templateVars);
+});
+// post methods
+app.post("/urls", (req, res) => {
+  const id = Math.random().toString(36).substring(2,7);
+  urlDatabase[id] = req.body.longURL;
+  res.redirect(`/urls/${id}`);
+});
 app.post("/urls/:id/delete", (req, res) => {
   delete urlDatabase[req.params.id];
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
+});
+app.post("/urls/:id", (req, res) => {
+  const id = req.params.id;
+  urlDatabase[id] = req.body.newURL;
+  res.redirect("/urls");
 });
