@@ -27,7 +27,15 @@ const users = {
 
 const getRandomNumber = function() {
   return Math.random().toString(36).substring(2,7);;
-}
+};
+
+const getUserByEmail = function(email) {
+  for (const user in users) {
+    if (users[user].email === email) {
+      return true
+    }
+  } return false;
+};
 
 app.get("/", (req, res) => {
   res.send("Hello there!");
@@ -108,13 +116,20 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const reqEmail = req.body.email;
   const reqPassword = req.body.password;
-
-  const userRandomId = getRandomNumber();
-  users[userRandomId] = {
-    id: userRandomId,
-    email: reqEmail,
-    password: reqPassword
+  if (!reqEmail) {
+    res.send(400, "Please Enter Valid Email..");
+  } else if (!reqPassword) {
+    res.send(400, "Please Enter Password..");
+  } else if (getUserByEmail(reqEmail)) {
+    res.send(400, "Account was exists with the email address..");
+  } else {
+    const userRandomId = getRandomNumber();
+    users[userRandomId] = {
+      id: userRandomId,
+      email: reqEmail,
+      password: reqPassword
+    };
+      res.cookie('user_id', userRandomId);
+      res.redirect("/urls");
   };
-    res.cookie('user_id', userRandomId);
-    res.redirect("/urls");
 });
