@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
@@ -171,9 +172,13 @@ app.post('/login', (req, res) => {
     res.status(403).send("Didn't find any Account with this email address");
   } else {
     const userId = getUserID(email, users);
-    res.cookie('user_id', userId);
-    res.redirect("/urls");
+    if (!bcrypt.compareSync(password, users[userId].password)) {
+      res.status(403).send("The password you entered does not match the one associated with the provided email address");
+    } else {
+      res.cookie('user_id', userId);
+      res.redirect("/urls");
     }
+  }
 });
 
 app.post("/logout", (req, res) => {
@@ -195,7 +200,7 @@ app.post("/register", (req, res) => {
     users[userRandomId] = {
       id: userRandomId,
       email: reqEmail,
-      password: reqPassword
+      password: bcrypt.hashSync(reqPassword, 10)
     };
       res.cookie('user_id', userRandomId);
       res.redirect("/urls");
