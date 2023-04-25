@@ -3,6 +3,7 @@ const cookieSession = require('cookie-session');
 const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = 8080; // default port 8080
+
 app.set("view engine", "ejs");
 
 app.use(express.urlencoded({ extended: true }));
@@ -10,13 +11,13 @@ app.use(cookieSession({name: 'session', secret: 'vidhyarani5'}));
 
 // Helper functions
 const { getUserByEmail, getRandomNumber, urlsForUser, getUserID } = require('./helpers');
+const { urlDatabase, users } = require('./database');
 
-const urlDatabase = {};
+/*
+ROUTING for TinyApp
+*/
 
-const users = {};
-
-
-//routes
+// GET (root): redirects to /urls if logged in, otherwise to /login
 app.get("/", (req, res) => {
   if (req.session.userID) {
     res.redirect('/urls');
@@ -25,39 +26,26 @@ app.get("/", (req, res) => {
   }
 });
 
-
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-app.get("/set", (req, res) => {
-  const a = 1;
-  res.send(`a = ${a}`);
- });
- 
- app.get("/fetch", (req, res) => {
-  res.send(`a = ${a}`);
- });
-
-app.get("/hello", (req, res) => {
-  const templateVars = { greeting: "Hello World!" };
-  res.render("hello_world", templateVars);
-});
-
+// GET(redirecting): redirects to the long (actual) url
 app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id];
-  res.redirect(longURL);
+  if (urlDatabase[req.params.id]) {
+    res.redirect(urlDatabase[req.params.id].longURL);
+  } else {
+    res.status(401).send("Short URL does not exist");
+  }
 });
 
-//get methods
+// GET (urls index page): shows urls that belong to the user, if they are logged in
 app.get("/urls", (req, res) => {
-  const cookieId = req.session.userID;
+  const sessionId = req.session.userID;
   const templateVars = {
-    user: users[cookieId],
-    urls: urlsForUser(cookieId, urlDatabase)
+    user: users[sessionId],
+    urls: urlsForUser(sessionId, urlDatabase)
   };
   res.render("urls_index", templateVars);
 });
 
+// GET (new url creation page): validates if the user is logged in before displaying page
 app.get("/urls/new", (req, res) => {
   if (req.session.userID) {
     const templateVars = {user: users[req.session.userID]};
@@ -67,22 +55,27 @@ app.get("/urls/new", (req, res) => {
   }
 });
 
+// GET (url page): shows details about the url if it belongs to user
 app.get("/urls/:id", (req, res) => {
-  const reqId = req.params.id;
-  if (urlDatabase[reqId]) {
-    let templateVars = {
-      id: reqId,
-      longURL: urlDatabase[reqId].longURL,
-      userId: urlDatabase[reqId].userId,
-      user: users[req.session.userID]
-    };
-    res.render("urls_show", templateVars);
+  if (req.session.userID) {
+    const reqId = req.params.id;
+    if (urlDatabase[reqId]) {
+      let templateVars = {
+        id: reqId,
+        longURL: urlDatabase[reqId].longURL,
+        userId: urlDatabase[reqId].userId,
+        user: users[req.session.userID]
+      };
+      res.render("urls_show", templateVars);
+    } else {
+      res.status(404).send("Not Authorized....");
+    }
   } else {
-    res.status(404).send("Not Authorized....");
+    res.redirect('/login');
   }
 });
 
-//login
+// GET (login page): redirects to urls index page if already logged in
 app.get('/login', (req, res) => {
   if (req.session.userID) {
     res.redirect("/urls");
@@ -94,7 +87,7 @@ app.get('/login', (req, res) => {
   }
 });
 
-//user-registration
+// GET (registration page): redirects to urls index page if already logged in
 app.get("/register", (req, res) => {
   if (req.session.userID) {
     res.redirect("/urls");
@@ -106,7 +99,7 @@ app.get("/register", (req, res) => {
   }
 });
 
-// post methods
+// POST (new url creation): adds new url to database, redirects to url page
 app.post("/urls", (req, res) => {
   if (req.session.userID) {
     const id = getRandomNumber();
@@ -120,28 +113,39 @@ app.post("/urls", (req, res) => {
   }
 });
 
+// POST (delete url): deletes url from database if it belongs to user
 app.post("/urls/:id/delete", (req, res) => {
-  const cookieId = req.session.userID;
-  const shortURL = req.params.id;
-  if (cookieId  && cookieId === urlDatabase[shortURL].userId) {
-    delete urlDatabase[req.params.id];
-    res.redirect('/urls');
+  if (req.session.userID) {
+    const sessionId = req.session.userID;
+    const shortURL = req.params.id;
+    if (sessionId  && sessionId === urlDatabase[shortURL].userId) {
+      delete urlDatabase[req.params.id];
+      res.redirect('/urls');
+    } else {
+      res.status(401).send("You do not have authorization to delete this short URL.");
+    }
   } else {
-    res.status(401).send("You do not have authorization to delete this short URL.");
+    res.redirect('/login');
   }
 });
 
+// POST (edit url): updates longURL if url belongs to user
 app.post("/urls/:id", (req, res) => {
-  const cookieId = req.session.userID;
-  const id = req.params.id;
-  if (cookieId  && cookieId === urlDatabase[id].userId) {
-    urlDatabase[id].longURL = req.body.newURL;
-    res.redirect(`/urls`);
+  if (req.session.userID) {
+    const sessionId = req.session.userID;
+    const id = req.params.id;
+    if (sessionId  && sessionId === urlDatabase[id].userId) {
+      urlDatabase[id].longURL = req.body.newURL;
+      res.redirect(`/urls`);
+    } else {
+      res.status(401).send("You do not have authorization to edit...");
+    }
   } else {
-    res.status(401).send("Not Autorized to edit...");
+    res.redirect('/login');
   }
 });
 
+// POST (logged in): redirects to urls index page if credentials are valid
 app.post('/login', (req, res) => {
   const email = req.body.email;
   const user = getUserByEmail(email, users);
@@ -154,12 +158,14 @@ app.post('/login', (req, res) => {
   }
 });
 
+// POST (log out page): clears cookies, session and redirects to urls index page
 app.post("/logout", (req, res) => {
   res.clearCookie('session');
   req.session = null;
   res.redirect('/urls');
 });
 
+// POST (registering user): redirects to urls index page if credentials are valid
 app.post("/register", (req, res) => {
   const reqEmail = req.body.email;
   const reqPassword = req.body.password;
@@ -181,6 +187,7 @@ app.post("/register", (req, res) => {
   };
 });
 
+// server listening on PORT
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
