@@ -28,10 +28,14 @@ app.get("/", (req, res) => {
 
 // GET(redirecting): redirects to the long (actual) url
 app.get("/u/:id", (req, res) => {
-  if (urlDatabase[req.params.id]) {
-    res.redirect(urlDatabase[req.params.id].longURL);
+  if (req.session.userID) {
+    if (urlDatabase[req.params.id]) {
+      res.redirect(urlDatabase[req.params.id].longURL);
+    } else {
+      res.status(401).send("Short URL does not exist");
+    }
   } else {
-    res.status(401).send("Short URL does not exist");
+    res.redirect('/login');
   }
 });
 
@@ -160,7 +164,6 @@ app.post('/login', (req, res) => {
 
 // POST (log out page): clears cookies, session and redirects to urls index page
 app.post("/logout", (req, res) => {
-  res.clearCookie('session');
   req.session = null;
   res.redirect('/urls');
 });
