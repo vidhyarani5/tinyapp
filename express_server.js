@@ -28,25 +28,25 @@ app.get("/", (req, res) => {
 
 // GET(redirecting): redirects to the long (actual) url
 app.get("/u/:id", (req, res) => {
-  if (req.session.userID) {
-    if (urlDatabase[req.params.id]) {
-      res.redirect(urlDatabase[req.params.id].longURL);
-    } else {
-      res.status(401).send("Short URL does not exist");
-    }
+  if (urlDatabase[req.params.id]) {
+    res.redirect(urlDatabase[req.params.id].longURL);
   } else {
-    res.redirect('/login');
+    res.status(401).send("Short URL does not exist");
   }
 });
 
 // GET (urls index page): shows urls that belong to the user, if they are logged in
 app.get("/urls", (req, res) => {
   const sessionId = req.session.userID;
-  const templateVars = {
-    user: users[sessionId],
-    urls: urlsForUser(sessionId, urlDatabase)
-  };
-  res.render("urls_index", templateVars);
+  if (sessionId) {
+    const templateVars = {
+      user: users[sessionId],
+      urls: urlsForUser(sessionId, urlDatabase)
+    };
+    res.render("urls_index", templateVars);
+  } else {
+    res.send('To access urls you must <h3><a href= "/Login"> login </a>  or  <a href= "/Register"> register </a></h3>');
+  }
 });
 
 // GET (new url creation page): validates if the user is logged in before displaying page
@@ -61,9 +61,10 @@ app.get("/urls/new", (req, res) => {
 
 // GET (url page): shows details about the url if it belongs to user
 app.get("/urls/:id", (req, res) => {
-  if (req.session.userID) {
+  const sessionId = req.session.userID;
+  if (sessionId) {
     const reqId = req.params.id;
-    if (urlDatabase[reqId]) {
+    if (sessionId  && sessionId === urlDatabase[reqId].userId) {
       let templateVars = {
         id: reqId,
         longURL: urlDatabase[reqId].longURL,
@@ -72,7 +73,7 @@ app.get("/urls/:id", (req, res) => {
       };
       res.render("urls_show", templateVars);
     } else {
-      res.status(404).send("Not Authorized....");
+      res.status(404).send("Not Authorized....<h3><a href= '/Login'> login </a></h3>");
     }
   } else {
     res.redirect('/login');
@@ -113,7 +114,7 @@ app.post("/urls", (req, res) => {
     };
     res.redirect(`/urls/${id}`);
   } else {
-    res.status(401).send("Please Login...");
+    res.status(401).send("Please Login...<h3><a href= '/Login'> login </a></h3>");
   }
 });
 
@@ -126,7 +127,7 @@ app.post("/urls/:id/delete", (req, res) => {
       delete urlDatabase[req.params.id];
       res.redirect('/urls');
     } else {
-      res.status(401).send("You do not have authorization to delete this short URL.");
+      res.status(401).send("You do not have authorization to delete this short URL...<h3><a href= '/Login'> login </a></h3>");
     }
   } else {
     res.redirect('/login');
@@ -142,7 +143,7 @@ app.post("/urls/:id", (req, res) => {
       urlDatabase[id].longURL = req.body.newURL;
       res.redirect(`/urls`);
     } else {
-      res.status(401).send("You do not have authorization to edit...");
+      res.status(401).send("You do not have authorization to edit...<h3><a href= '/Login'> login </a></h3>");
     }
   } else {
     res.redirect('/login');
@@ -158,14 +159,14 @@ app.post('/login', (req, res) => {
     req.session.userID = userId;
     res.redirect("/urls");
   } else {
-    res.status(403).send("Invalid Login Credentials...");
+    res.status(403).send("Invalid Login Credentials... <h3><a href= '/Login'> login </a></h3>");
   }
 });
 
 // POST (log out page): clears cookies, session and redirects to urls index page
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect('/urls');
+  res.redirect('/login');
 });
 
 // POST (registering user): redirects to urls index page if credentials are valid

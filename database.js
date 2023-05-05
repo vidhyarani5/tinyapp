@@ -1,4 +1,9 @@
-const urlDatabase = {}; //Store the urls
+const urlDatabase = {
+  k6BoDs: {
+    longURL: "https://www.google.ca",
+    userId: "6gpd8"
+  }
+}; //Store the urls
 const users = {};       //Stores the users
 
 exports.urlDatabase = urlDatabase
